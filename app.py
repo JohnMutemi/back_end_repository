@@ -4,7 +4,6 @@ from flask import Flask, request, make_response, session, jsonify
 from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_restful import Api, Resource
- 
 from flask_bcrypt import Bcrypt
 
 app = Flask(__name__)
