@@ -33,6 +33,8 @@ def check_login():
 @app.route("/")
 def index():
     return render_template('index.html')
+
+
 # Resources
 class Login(Resource):
     def post(self):
