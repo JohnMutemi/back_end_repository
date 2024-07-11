@@ -3,88 +3,178 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MediCare</title>
+    <title>Admin Dashboard</title>
     <style>
       body {
         font-family: Arial, sans-serif;
+        line-height: 1.6;
         margin: 20px;
-        padding: 20px;
-        background-color: #f0f0f0;
       }
-
-      h1 {
-        color: #333;
+      h1,
+      h2,
+      h3 {
+        margin-bottom: 10px;
       }
-
-      .endpoint-list {
-        margin: 20px 0;
+      #notifications,
+      #requests {
+        display: none;
+        margin-bottom: 30px;
+        padding: 15px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
       }
-
-      .endpoint-list a {
-        display: block;
-        margin: 5px 0;
-        color: #007bff;
-        text-decoration: none;
+      ul {
+        list-style-type: none;
+        padding: 0;
       }
-
-      .endpoint-list a:hover {
-        text-decoration: underline;
+      li {
+        margin-bottom: 8px;
+        padding: 8px;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
       }
-
-      .schema-image {
-        max-width: 100%;
-        height: auto;
+      button {
+        margin-left: 10px;
+        cursor: pointer;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        padding: 8px 16px;
+      }
+      button:hover {
+        background-color: #45a049;
       }
     </style>
   </head>
   <body>
-    <h1>Welcome to MediCare Global</h1>
-
-    <!-- Endpoint Links -->
-    <div class="endpoint-list">
-      <p>Explore database tables:</p>
-      <a href="/users">Users Table</a>
-      <a href="/doctors">Doctors Table</a>
-      <a href="/patients">Patients Table</a>
-      <a href="/appointments">Appointments Table</a>
+    <h1>Admin Dashboard</h1>
+    <div id="loginForm">
+      <h1>Login</h1>
+      <form method="POST" action="/login">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" /><br />
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" /><br />
+        <button type="submit">Login</button>
+      </form>
     </div>
-
-    <!-- Database Schema Image -->
-    <div>
-      <h2>Database</h2>
-      <p>A visual representation of the schema:</p>
-
-      <p><em>Relationships:</em></p>
-      <ul>
-        <li>
-          <strong>Users</strong>: The Users table contains information about all
-          the users in the system, including their roles (doctor, patient,
-          etc.).
-        </li>
-        <li>
-          <strong>Doctors</strong>: This table stores specific details about
-          doctors, which are a subset of users.
-        </li>
-        <li>
-          <strong>Patients</strong>: This table contains details about patients,
-          who are also a subset of users.
-        </li>
-        <li>
-          <strong>Appointments</strong>: The Appointments table tracks all
-          appointments made between doctors and patients.
-        </li>
-      </ul>
+<!-- 
+    <div id="notifications">
+      <h2>Notifications</h2>
+      <ul id="notificationList"></ul>
     </div>
-
-    <!-- GitHub Repository Link -->
-    <div>
-      <h2>Repository</h2>
-      <p>Find the project repository on GitHub:</p>
-      <a
-        href="https://github.com/JohnMutemi/back_end_repository"
-        target="_blank"
-        >MediCare Backend Repository</a
-      >
+    <div id="doctorRequests">
+      <h2>Doctor Requests</h2>
+      <ul id="doctorRequestList"></ul>
     </div>
+    <div id="patientRequests">
+      <h2>Patient Requests</h2>
+      <ul id="patientRequestList"></ul>
+    </div> -->
+
+    <script>
+      function fetchDashboardData() {
+        fetch('/admin_dashboard')
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.error) {
+              alert(data.error);
+            } else {
+              document.getElementById('loginForm').style.display = 'none';
+              document.getElementById('notifications').style.display = 'block';
+              document.getElementById('doctorRequests').style.display = 'block';
+              document.getElementById('patientRequests').style.display =
+                'block';
+
+              const notifications = data.notifications;
+              const doctorRequests = data.doctor_requests;
+              const patientRequests = data.patient_requests;
+
+              const notificationList =
+                document.getElementById('notificationList');
+              notificationList.innerHTML = '';
+              notifications.forEach((notification) => {
+                const li = document.createElement('li');
+                li.textContent = notification.message;
+                notificationList.appendChild(li);
+              });
+
+              const doctorRequestList =
+                document.getElementById('doctorRequestList');
+              doctorRequestList.innerHTML = '';
+              doctorRequests.forEach((request) => {
+                const li = createRequestListItem(
+                  request.user_name,
+                  request.id,
+                  'doctor'
+                );
+                doctorRequestList.appendChild(li);
+              });
+
+              const patientRequestList =
+                document.getElementById('patientRequestList');
+              patientRequestList.innerHTML = '';
+              patientRequests.forEach((request) => {
+                const li = createRequestListItem(
+                  request.user_name,
+                  request.id,
+                  'patient'
+                );
+                patientRequestList.appendChild(li);
+              });
+            }
+          });
+      }
+
+      function createRequestListItem(username, userId, type) {
+        const li = document.createElement('li');
+        li.textContent = username;
+
+        const approveButton = document.createElement('button');
+        approveButton.textContent = 'Approve';
+        approveButton.onclick = () => handleRequest('approve', userId, type);
+        li.appendChild(approveButton);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Delete';
+        deleteButton.onclick = () => handleRequest('delete', userId, type);
+        li.appendChild(deleteButton);
+
+        return li;
+      }
+
+      function handleRequest(action, userId, userType) {
+        fetch('/admin_dashboard', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action,
+            user_id: userId,
+            user_type: userType,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.error) {
+              alert(data.error);
+            } else {
+              fetchDashboardData();
+            }
+          });
+      }
+      // Check if the user is already logged in
+      fetch('/check_session')
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.user_id && data.role === 'admin') {
+            fetchDashboardData();
+          }
+        });
+    </script>
   </body>
 </html>

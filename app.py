@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os
-from flask import Flask, request, make_response, session, render_template, jsonify
+from flask import Flask, request, make_response, session, jsonify, render_template
 from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_restful import Api, Resource
@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///models.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.json.compact = False
+app.json.compact=False
 app.secret_key = os.urandom(24)
 bcrypt = Bcrypt(app)
 
@@ -19,64 +19,45 @@ from models import db, Doctor, Patient, Appointment, User
 db.init_app(app)
 migrate = Migrate(app, db)
 
-# Before request handler to check login status and access permissions
+@app.before_request
 def check_login():
-    print(f"Endpoint: {request.endpoint}")
-    print(f"Session: {session}")
-
-    public_endpoints = ['login', 'register', 'index', 'check_session']
-
-    # Allow public endpoints without requiring a session
-    if request.endpoint in public_endpoints:
-        return None
-
     user_id = session.get('user_id')
-    user_role = session.get('role')
-
-    if not user_id:
-        return make_response({"error": "Unauthorized"}, 401)
-
-    # Retrieve the user by ID
-    user = User.query.get(user_id)
-    if not user:
-        return make_response({"error": "Unauthorized"}, 401)
-
-    if user_role == 'admin':
-        return None
-    elif user_role == 'doctor' and request.endpoint in ['doctor', 'doctors', 'doctor_id']:
-        return None
-    elif user_role == 'patient' and request.endpoint in ['patient', 'patients', 'patient_id']:
-        return None
-
-    return make_response({"error": "Unauthorized"}, 401)
-
-# Route to display home page
+    if user_id is None\
+        and request.endpoint != 'index'\
+        and request.endpoint != 'login'\
+        and request.endpoint != 'logout'\
+        and request.endpoint != 'register' \
+        and request.endpoint != 'check_session':
+        return{"error":"unauthorized access"},401
+    
 @app.route("/")
 def index():
     return render_template('index.html')
-
+# Resources
 class Login(Resource):
     def post(self):
-        data = request.get_json()
-        user = User.query.filter_by(user_name=data['user_name']).first()
+        user_name = request.form.get('user_name')
+        password = request.form.get('password')
+    
+        user = User.query.filter_by(user_name=user_name).first()
 
-        if user and user.authenticate(data['password']):
+        if user and user.authenticate(password):
             session['user_id'] = user.id
-            session['role'] = user.role  # Ensure the role is set
-            response_dict = user.to_dict()
-            response = make_response(response_dict, 200)
-            print(f"Login successful: user_id={user.id}, role={user.role}")
-        else:
-            response = make_response({"error": "Invalid credentials"}, 401)
-            print("Login failed")
-        return response
+            welcome_message = f"Welcome {user.user_name}"
+            return {
+                'message': welcome_message,
+                'id': user.id,
+                'user_name': user.user_name,
+                'role': user.role
+            }, 200
+
+        return {"error": "Invalid username or password"}, 401
 
 class Register(Resource):
     def post(self):
-        data = request.get_json()
-        user_name = data['user_name']
-        password = data['password']
-        role = data['role']
+        user_name = request.form.get('user_name')
+        password = request.form.get('password')
+        role = request.form.get('role')
 
         if not user_name or not password or not role:
             return {'message': 'Username, password, and role are required'}, 400
@@ -113,6 +94,18 @@ class Logout(Resource):
         session.pop('role', None)
         return jsonify({"message": "Logout successful"})
 
+
+# # Index Resource
+# class Index(Resource):
+  
+#     # Returns a welcome message for the Patient-Doctor Appointment System.
+#     def get(self):
+#         response_dict = {
+#             "message": "Welcome to the Patient-Doctor Appointment System!"
+#         }
+#         response = make_response(response_dict, 200)
+#         return response
+
 # Doctors Resource
 class Doctors(Resource):
     # Returns a list of all doctors.
@@ -120,7 +113,7 @@ class Doctors(Resource):
         response_dict_list = [doctor.to_dict() for doctor in Doctor.query.all()]
         response = make_response(response_dict_list, 200)
         return response
-    # Adds a new doctor.
+# Adds a new doctor.
     def post(self):
         new_doctor = Doctor(
             name=request.form.get('name'),
@@ -134,7 +127,8 @@ class Doctors(Resource):
 
 # DoctorByID Resource
 class DoctorByID(Resource):
-    # Retrieves details of a specific doctor by ID.
+  
+        # Retrieves details of a specific doctor by ID.
     def get(self, doctor_id):
         doctor = Doctor.query.get(doctor_id)
         if doctor:
@@ -143,7 +137,7 @@ class DoctorByID(Resource):
         else:
             response = make_response({"error": "Doctor not found"}, 404)
         return response
-    # Updates details of a specific doctor by ID.
+# Updates details of a specific doctor by ID.
     def put(self, doctor_id):
         doctor = Doctor.query.get(doctor_id)
         if doctor:
@@ -156,7 +150,7 @@ class DoctorByID(Resource):
         else:
             response = make_response({"error": "Doctor not found"}, 404)
         return response
-    # Deletes a specific doctor by ID.
+# Deletes a specific doctor by ID.
     def delete(self, doctor_id):
         doctor = Doctor.query.get(doctor_id)
         if doctor:
@@ -169,12 +163,13 @@ class DoctorByID(Resource):
 
 # Patients Resource
 class Patients(Resource):
+    
     # Returns a list of all patients.
     def get(self):
         response_dict_list = [patient.to_dict() for patient in Patient.query.all()]
         response = make_response(response_dict_list, 200)
         return response
-    # Adds a new patient.
+# Adds a new patient.
     def post(self):
         new_patient = Patient(
             name=request.form.get('name'),
@@ -189,7 +184,8 @@ class Patients(Resource):
 
 # PatientByID Resource
 class PatientByID(Resource):
-    # Retrieves details of a specific patient by ID.
+  
+#     Updates details of a specific patient by ID
     def get(self, patient_id):
         patient = Patient.query.get(patient_id)
         if patient:
@@ -198,7 +194,7 @@ class PatientByID(Resource):
         else:
             response = make_response({"error": "Patient not found"}, 404)
         return response
-    # Updates details of a specific patient by ID.
+
     def put(self, patient_id):
         patient = Patient.query.get(patient_id)
         if patient:
@@ -211,7 +207,7 @@ class PatientByID(Resource):
         else:
             response = make_response({"error": "Patient not found"}, 404)
         return response
-    # Deletes a specific patient by ID.
+#  Deletes a specific patient by ID.
     def delete(self, patient_id):
         patient = Patient.query.get(patient_id)
         if patient:
@@ -224,18 +220,20 @@ class PatientByID(Resource):
 
 # Appointments Resource
 class Appointments(Resource):
-    # Returns a list of all appointments.
+    
+    #  Returns a list of all appointments.
     def get(self):
         response_dict_list = [appointment.to_dict() for appointment in Appointment.query.all()]
         response = make_response(response_dict_list, 200)
         return response
-    # Adds a new appointment.
+#  Adds a new appointment.
     def post(self):
+        
         new_appointment = Appointment(
+            doctor_id=request.form('doctor_id'),
+            patient_id=request.form('patient_id'),
             date=request.form.get('date'),
-            time=request.form.get('time'),
-            doctor_id=request.form.get('doctor_id'),
-            patient_id=request.form.get('patient_id')
+            time=request.form.get('time')
         )
         db.session.add(new_appointment)
         db.session.commit()
@@ -245,7 +243,8 @@ class Appointments(Resource):
 
 # AppointmentByID Resource
 class AppointmentByID(Resource):
-    # Retrieves details of a specific appointment by ID.
+    
+#  Retrieves details of a specific appointment by ID.
     def get(self, appointment_id):
         appointment = Appointment.query.get(appointment_id)
         if appointment:
@@ -254,11 +253,13 @@ class AppointmentByID(Resource):
         else:
             response = make_response({"error": "Appointment not found"}, 404)
         return response
-    # Updates details of a specific appointment by ID.
+# Updates details of a specific appointment by ID.
     def put(self, appointment_id):
         appointment = Appointment.query.get(appointment_id)
         if appointment:
             data = request.get_json()
+            appointment.doctor_id = data.get('doctor_id', appointment.doctor_id)
+            appointment.patient_id = data.get('patient_id', appointment.patient_id)
             appointment.date = data.get('date', appointment.date)
             appointment.time = data.get('time', appointment.time)
             db.session.commit()
@@ -267,7 +268,7 @@ class AppointmentByID(Resource):
         else:
             response = make_response({"error": "Appointment not found"}, 404)
         return response
-    # Deletes a specific appointment by ID.
+# Deletes a specific appointment by ID.
     def delete(self, appointment_id):
         appointment = Appointment.query.get(appointment_id)
         if appointment:
@@ -277,18 +278,19 @@ class AppointmentByID(Resource):
         else:
             response = make_response({"error": "Appointment not found"}, 404)
         return response
-
-# Registering the routes with the API
-api.add_resource(Login, '/login')
-api.add_resource(Register, '/register')
-api.add_resource(CheckSession, '/check-session')
-api.add_resource(Logout, '/logout')
-api.add_resource(Doctors, '/doctors')
+    
+# Add resources to API
+api.add_resource(Register, '/register', endpoint='register')
+api.add_resource(Login, '/login', endpoint='login')
+api.add_resource(CheckSession, '/check_session', endpoint='check-session')
+api.add_resource(Logout, '/logout', endpoint='logout')
+# api.add_resource(Index, '/', endpoint='index')
+api.add_resource(Doctors, '/doctors', endpoint='doctors')
 api.add_resource(DoctorByID, '/doctors/<int:doctor_id>')
-api.add_resource(Patients, '/patients')
+api.add_resource(Patients, '/patients', endpoint='patients')
 api.add_resource(PatientByID, '/patients/<int:patient_id>')
-api.add_resource(Appointments, '/appointments')
+api.add_resource(Appointments, '/appointments', endpoint='appointments')
 api.add_resource(AppointmentByID, '/appointments/<int:appointment_id>')
 
-if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+if __name__ == '__main__':
+    app.run(port=5555, debug=True)

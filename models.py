@@ -4,6 +4,7 @@ from sqlalchemy.orm import validates
 from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.ext.hybrid import hybrid_property
 from app import bcrypt
+from datetime import datetime
 
 metadata = MetaData(naming_convention={
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s"
@@ -21,7 +22,7 @@ class User(db.Model, SerializerMixin):
     doctor = db.relationship('Doctor', uselist=False, back_populates='user')
     patient = db.relationship('Patient', uselist=False, back_populates='user')
     admin = db.relationship('Admin', uselist=False, back_populates='user')
-
+    notifications = db.relationship('Notification', back_populates='user')
     serialize_rules = ('-doctor.user', '-patient.user', '-admin.user')
 
     def __repr__(self):
@@ -112,6 +113,24 @@ class Appointment(db.Model, SerializerMixin):
 
     def __repr__(self):
         return f'<Appointment {self.id}, {self.date}>'
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String(50), nullable=False)
+    message = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user = db.relationship('User', back_populates='notifications')
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "type": self.type,
+            "message": self.message,
+            "created_at": self.created_at.isoformat(),
+            "user_id": self.user_id
+        }
 
 class Admin(db.Model, SerializerMixin):
     __tablename__ = 'admins'
