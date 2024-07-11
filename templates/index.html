@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediCare</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        padding: 20px;
+        background-color: #f0f0f0;
+      }
+
+      h1 {
+        color: #333;
+      }
+
+      .endpoint-list {
+        margin: 20px 0;
+      }
+
+      .endpoint-list a {
+        display: block;
+        margin: 5px 0;
+        color: #007bff;
+        text-decoration: none;
+      }
+
+      .endpoint-list a:hover {
+        text-decoration: underline;
+      }
+
+      .schema-image {
+        max-width: 100%;
+        height: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Welcome to MediCare Global</h1>
+
+    <!-- Endpoint Links -->
+    <div class="endpoint-list">
+      <p>Explore database tables:</p>
+      <a href="/users">Users Table</a>
+      <a href="/doctors">Doctors Table</a>
+      <a href="/patients">Patients Table</a>
+      <a href="/appointments">Appointments Table</a>
+    </div>
+
+    <!-- Database Schema Image -->
+    <div>
+      <h2>Database</h2>
+      <p>A visual representation of the schema:</p>
+
+      <p><em>Relationships:</em></p>
+      <ul>
+        <li>
+          <strong>Users</strong>: The Users table contains information about all
+          the users in the system, including their roles (doctor, patient,
+          etc.).
+        </li>
+        <li>
+          <strong>Doctors</strong>: This table stores specific details about
+          doctors, which are a subset of users.
+        </li>
+        <li>
+          <strong>Patients</strong>: This table contains details about patients,
+          who are also a subset of users.
+        </li>
+        <li>
+          <strong>Appointments</strong>: The Appointments table tracks all
+          appointments made between doctors and patients.
+        </li>
+      </ul>
+    </div>
+
+    <!-- GitHub Repository Link -->
+    <div>
+      <h2>Repository</h2>
+      <p>Find the project repository on GitHub:</p>
+      <a
+        href="https://github.com/JohnMutemi/back_end_repository"
+        target="_blank"
+        >MediCare Backend Repository</a
+      >
+    </div>
+  </body>
+</html>

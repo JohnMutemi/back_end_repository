@@ -1,0 +1,26 @@
+# Python bytecode
+*.pyc
+__pycache__/
+
+# Pipenv
+Pipfile.lock
+
+# Virtual environment
+venv/
+.env
+
+# SQLAlchemy
+/migrations/
+app.db
+
+# IDE/Editor specific
+.vscode/
+.idea/
+*.code-workspace
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
