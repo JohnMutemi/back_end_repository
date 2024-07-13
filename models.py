@@ -2,8 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
 from sqlalchemy.orm import validates
 from sqlalchemy_serializer import SerializerMixin
-from sqlalchemy.ext.hybrid import hybrid_property
-from app import bcrypt
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 metadata = MetaData(naming_convention={
@@ -11,9 +10,9 @@ metadata = MetaData(naming_convention={
 })
 db = SQLAlchemy(metadata=metadata)
 
-# models
 class User(db.Model, SerializerMixin):
     __tablename__ = 'users'
+    
     id = db.Column(db.Integer, primary_key=True)
     user_name = db.Column(db.String(64), nullable=False, unique=True)
     _password_hash = db.Column(db.String(128), nullable=False)
@@ -28,28 +27,22 @@ class User(db.Model, SerializerMixin):
     def __repr__(self):
         return f'User {self.user_name}'
 
-    @hybrid_property
+    @property
     def password_hash(self):
         return self._password_hash
 
     @password_hash.setter
     def password_hash(self, password):
-        self._password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+        self._password_hash = generate_password_hash(password)
 
     def authenticate(self, password):
-        return bcrypt.check_password_hash(self._password_hash, password)
+        return check_password_hash(self._password_hash, password)
 
     @validates('user_name')
     def validate_user_name(self, key, user_name):
         if not user_name:
             raise ValueError("User name cannot be empty")
         return user_name
-
-    @validates('_password_hash')
-    def validate_password_hash(self, key, password_hash):
-        if not password_hash:
-            raise ValueError("Password hash cannot be empty")
-        return password_hash
 
     @validates('role')
     def validate_role(self, key, role):
@@ -67,7 +60,7 @@ class User(db.Model, SerializerMixin):
             'role': self.role
         }
 
-
+# models
 class Doctor(db.Model, SerializerMixin):
     __tablename__ = 'doctors'
     id = db.Column(db.Integer, primary_key=True)
@@ -82,6 +75,7 @@ class Doctor(db.Model, SerializerMixin):
 
     def __repr__(self):
         return f'<Doctor {self.id}, {self.name}, {self.specialization}>'
+
 
 class Patient(db.Model, SerializerMixin):
     __tablename__ = 'patients'
@@ -99,12 +93,14 @@ class Patient(db.Model, SerializerMixin):
     def __repr__(self):
         return f'<Patient {self.id}, {self.name}, {self.age}, {self.gender}>'
 
+
 class Appointment(db.Model, SerializerMixin):
     __tablename__ = 'appointments'
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    status = db.Column(db.String(50), nullable=False, default='pending')  # Added status column
 
     doctor = db.relationship('Doctor', back_populates='appointments')
     patient = db.relationship('Patient', back_populates='appointments')
@@ -113,6 +109,8 @@ class Appointment(db.Model, SerializerMixin):
 
     def __repr__(self):
         return f'<Appointment {self.id}, {self.date}>'
+
+
 class Notification(db.Model):
     __tablename__ = 'notifications'
 
@@ -131,6 +129,7 @@ class Notification(db.Model):
             "created_at": self.created_at.isoformat(),
             "user_id": self.user_id
         }
+
 
 class Admin(db.Model, SerializerMixin):
     __tablename__ = 'admins'
