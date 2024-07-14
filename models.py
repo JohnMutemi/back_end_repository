@@ -17,7 +17,7 @@ class User(db.Model, SerializerMixin):
     user_name = db.Column(db.String(64), nullable=False, unique=True)
     _password_hash = db.Column(db.String(128), nullable=False)
     role = db.Column(db.String(10), nullable=False)  # 'admin', 'doctor', 'patient'
-
+    email = db.Column(db.String(120), unique=True, nullable=False)
     doctor = db.relationship('Doctor', uselist=False, back_populates='user')
     patient = db.relationship('Patient', uselist=False, back_populates='user')
     admin = db.relationship('Admin', uselist=False, back_populates='user')
@@ -57,6 +57,7 @@ class User(db.Model, SerializerMixin):
         return {
             'id': self.id,
             'user_name': self.user_name,
+            'email': self.email, 
             'role': self.role
         }
 

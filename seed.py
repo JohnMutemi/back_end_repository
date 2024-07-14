@@ -13,12 +13,12 @@ def seed_database():
         # Clear session
         db.session.remove()
 
-        # Create some users with dummy passwords
-        user1 = User(user_name='alice', role='patient')
+        # Create some users with dummy passwords and emails
+        user1 = User(user_name='alice', role='patient', email='alice@example.com')
         user1.password_hash = "patient1"
-        user2 = User(user_name='bob', role='doctor')
+        user2 = User(user_name='bob', role='doctor', email='bob@example.com')
         user2.password_hash = "doctor1"
-        user3 = User(user_name='jean', role='admin')
+        user3 = User(user_name='jean', role='admin', email='jean@example.com')
         user3.password_hash = "superadmin"
 
         # Create an admin
