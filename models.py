@@ -99,6 +99,7 @@ class Appointment(db.Model, SerializerMixin):
     __tablename__ = 'appointments'
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False)
+    time = db.Column(db.Time, nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
     status = db.Column(db.String(50), nullable=False, default='pending')  # Added status column

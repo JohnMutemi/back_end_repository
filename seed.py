@@ -33,8 +33,8 @@ def seed_database():
         patient2 = Patient(name='Bob Smith', age=45, gender='Male', user=user1)
 
         # Create some appointments
-        appointment1 = Appointment(date=datetime(2023, 7, 9, 10, 0), doctor=doctor1, patient=patient1)
-        appointment2 = Appointment(date=datetime(2023, 7, 10, 11, 0), doctor=doctor2, patient=patient2)
+        appointment1 = Appointment(date=datetime(2023, 7, 9), time=datetime.strptime('10:00', '%H:%M').time(), doctor=doctor1, patient=patient1)
+        appointment2 = Appointment(date=datetime(2023, 7, 10), time=datetime.strptime('11:00', '%H:%M').time(), doctor=doctor2, patient=patient2)
 
         # Create some notifications
         notification1 = Notification(type='info', message='Welcome to the system!', user=user1)

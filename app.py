@@ -8,7 +8,7 @@ from werkzeug.exceptions import NotFound
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -57,31 +57,6 @@ def show_cookies(key):
     response.set_cookie('cookie_name', 'cookie')
     return response
 
-# @app.before_request
-# def check_login():
-#     allowed_endpoints = ['login', 'logout', 'register', 'session']
-
-#     if request.endpoint in allowed_endpoints:
-#         return
-
-#     if 'user_id' not in session:
-#         return jsonify({"error": "Unauthorized access. Please log in."}), 401
-
-#     user_id = session['user_id']
-#     user = User.query.get(user_id)
-
-#     if not user:
-#         return jsonify({"error": "User not found. Please log in again."}), 401
-
-#     if request.endpoint == 'doctors':
-#         return
-
-#     if request.endpoint == 'patients':
-#         if user.role not in ['admin', 'doctor']:
-#             return jsonify({"error": "Unauthorized access. Admin or Doctor role required."}), 403
-
-#     request.user = user
-
 class Login(Resource):
     def post(self):
         user_name = request.form.get('user_name')
@@ -91,7 +66,7 @@ class Login(Resource):
 
         if user and user.authenticate(password):
             session['user_id'] = user.id
-            access_token = create_access_token(identity=user.id)
+            access_token = create_access_token(identity={'user_id': user.id, 'role': 'user_role'})
             return {
                 'message': f"Welcome {user.user_name}",
                 'access_token': access_token,
@@ -184,24 +159,24 @@ class UserProfileResource(Resource):
 
 
 class Doctors(Resource):
+    @jwt_required()
     def get(self):
         response_dict_list = [doctor.to_dict() for doctor in Doctor.query.all()]
         response = make_response(response_dict_list, 200)
         return response
-
+    @jwt_required()
     def post(self):
-        name = request.form.get('name')
-        specialization = request.form.get('specialization')
-        if not name or not specialization:
-            return {"error": "Name and specialization are required"}, 400
-
-        new_doctor = Doctor(name=name, specialization=specialization)
+        current_user_id = get_jwt_identity()
+        new_doctor = Doctor(
+            name=request.form.get('name'),
+            specialization=request.form.get('specialization'),
+            user_id=current_user_id['user_id']  
+        )
         db.session.add(new_doctor)
         db.session.commit()
         response_dict = new_doctor.to_dict()
         response = make_response(response_dict, 201)
         return response
-
 class DoctorByID(Resource):
     def get(self, doctor_id):
         doctor = Doctor.query.get(doctor_id)
@@ -235,6 +210,7 @@ class DoctorByID(Resource):
         return response
 
 class Patients(Resource):
+    @jwt_required()
     def get(self):
         response_dict_list = [patient.to_dict() for patient in Patient.query.all()]
         response = make_response(response_dict_list, 200)
@@ -255,6 +231,7 @@ class Patients(Resource):
         return response
 
 class PatientByID(Resource):
+    @jwt_required()
     def get(self, patient_id):
         patient = Patient.query.get(patient_id)
         if patient:
@@ -292,23 +269,18 @@ class Appointments(Resource):
         response_dict_list = [appointment.to_dict() for appointment in Appointment.query.all()]
         response = make_response(response_dict_list, 200)
         return response
-
+    @jwt_required()
     def post(self):
-        doctor_id = request.form.get('doctor_id')
-        patient_id = request.form.get('patient_id')
-        date = request.form.get('date')
-        time = request.form.get('time')
+        current_user_id = get_jwt_identity()
+        appointment_date = datetime.strptime(request.form.get('date'), '%Y-%m-%d').date()
+        appointment_time = datetime.strptime(request.form.get('time'), '%H:%M').time()
 
-        doctor = Doctor.query.get(doctor_id)
-        patient = Patient.query.get(patient_id)
-
-        if not doctor or not patient:
-            return {"error": "Invalid doctor or patient ID"}, 400
-
-        if not date or not time:
-            return {"error": "Date and time are required"}, 400
-
-        new_appointment = Appointment(doctor=doctor, patient=patient, date=date, time=time)
+        new_appointment = Appointment(
+            patient_id=current_user_id['user_id'],
+            doctor_id=request.form.get('doctor_id'),
+            date=appointment_date,
+            time=appointment_time
+        )
         db.session.add(new_appointment)
         db.session.commit()
         response_dict = new_appointment.to_dict()
