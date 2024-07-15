@@ -11,8 +11,8 @@ from dotenv import load_dotenv
 from datetime import timedelta
 
 app = Flask(__name__)
-# CORS(app)
-CORS(app, supports_credentials=True)
+CORS(app)
+# CORS(app, supports_credentials=True)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 # CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///models.db"  # Use postgres in production
@@ -97,7 +97,8 @@ class Login(Resource):
                 'access_token': access_token,
                 'user_name': user.user_name,
                 'role': user.role,
-                'email': user.email
+                'email': user.email,
+                'user_Id':user.id
             }, 200
         else:
             return {"error": "Invalid username or password"}, 401
@@ -149,28 +150,41 @@ class Logout(Resource):
         session.pop('role', None)
         return jsonify({"message": "Logout successful"})
     
+from flask import request
+from flask_restful import Resource
+from models import db, User  # Adjust import according to your project structure
+
 class UserProfileResource(Resource):
-    def get(self, user_id=None):
+    def get(self, user_id):
+        print('Response has been reached successfully')
+        print('Requested user ID:', user_id)
+        
         if user_id:
             user = User.query.get(user_id)
             if user:
                 return user.to_dict(), 200
             return {'error': 'User not found'}, 404
+        
         users = User.query.all()
         return [user.to_dict() for user in users], 200
 
     def put(self, user_id):
-        data = request.get_json()
+        print('Request has been reached')
+        
         user = User.query.get(user_id)
         if user:
-            user.user_name = data['user_name']
-            user.email = data['email']
-            user.role = data['role']
-            if 'password' in data:
-                user.password = data['password']
-            db.session.commit()
-            return user.to_dict(), 200
+            try:
+                user.username = request.form.get('username')  # Corrected key names
+                user.email = request.form.get('email')
+
+                db.session.commit()
+                return user.to_dict(), 200
+            except Exception as e:
+                db.session.rollback()
+                print(f'Error updating user: {e}')
+                return {'error': 'Failed to update user'}, 500
         return {'error': 'User not found'}, 404
+
 
 class Doctors(Resource):
     def get(self):
