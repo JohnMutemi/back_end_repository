@@ -57,30 +57,30 @@ def show_cookies(key):
     response.set_cookie('cookie_name', 'cookie')
     return response
 
-@app.before_request
-def check_login():
-    allowed_endpoints = ['login', 'logout', 'register', 'session']
+# @app.before_request
+# def check_login():
+#     allowed_endpoints = ['login', 'logout', 'register', 'session']
 
-    if request.endpoint in allowed_endpoints:
-        return
+#     if request.endpoint in allowed_endpoints:
+#         return
 
-    if 'user_id' not in session:
-        return jsonify({"error": "Unauthorized access. Please log in."}), 401
+#     if 'user_id' not in session:
+#         return jsonify({"error": "Unauthorized access. Please log in."}), 401
 
-    user_id = session['user_id']
-    user = User.query.get(user_id)
+#     user_id = session['user_id']
+#     user = User.query.get(user_id)
 
-    if not user:
-        return jsonify({"error": "User not found. Please log in again."}), 401
+#     if not user:
+#         return jsonify({"error": "User not found. Please log in again."}), 401
 
-    if request.endpoint == 'doctors':
-        return
+#     if request.endpoint == 'doctors':
+#         return
 
-    if request.endpoint == 'patients':
-        if user.role not in ['admin', 'doctor']:
-            return jsonify({"error": "Unauthorized access. Admin or Doctor role required."}), 403
+#     if request.endpoint == 'patients':
+#         if user.role not in ['admin', 'doctor']:
+#             return jsonify({"error": "Unauthorized access. Admin or Doctor role required."}), 403
 
-    request.user = user
+#     request.user = user
 
 class Login(Resource):
     def post(self):
@@ -150,10 +150,6 @@ class Logout(Resource):
         session.pop('role', None)
         return jsonify({"message": "Logout successful"})
     
-from flask import request
-from flask_restful import Resource
-from models import db, User  # Adjust import according to your project structure
-
 class UserProfileResource(Resource):
     def get(self, user_id):
         print('Response has been reached successfully')
@@ -168,15 +164,16 @@ class UserProfileResource(Resource):
         users = User.query.all()
         return [user.to_dict() for user in users], 200
 
-    def put(self, user_id):
+    def patch(self, user_id):
         print('Request has been reached')
-        
         user = User.query.get(user_id)
+        data = request.get_json()
+        print(data)
         if user:
+            print(user)
             try:
-                user.username = request.form.get('username')  # Corrected key names
-                user.email = request.form.get('email')
-
+                user.user_name = data['user_name']
+                user.email = data['email']
                 db.session.commit()
                 return user.to_dict(), 200
             except Exception as e:
