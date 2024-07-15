@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import random
-from flask import Flask, request, make_response, session, jsonify, redirect, url_for
+from flask import Flask, request, make_response, session, jsonify, redirect, url_for, render_template
 from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_restful import Api, Resource
@@ -56,7 +56,9 @@ def show_cookies(key):
                    for cookie in request.cookies], }), 200)
     response.set_cookie('cookie_name', 'cookie')
     return response
-
+@app.route('/')
+def index():
+    return render_template('index.html')
 class Login(Resource):
     def post(self):
         user_name = request.form.get('user_name')
