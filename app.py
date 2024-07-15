@@ -230,16 +230,27 @@ class Patients(Resource):
         response = make_response(response_dict, 201)
         return response
 
+# PatientByID Resource
 class PatientByID(Resource):
     @jwt_required()
     def get(self, patient_id):
-        patient = Patient.query.get(patient_id)
-        if patient:
-            response_dict = patient.to_dict()
-            response = make_response(response_dict, 200)
-        else:
-            response = make_response({"error": "Patient not found"}, 404)
-        return response
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if user.role == 'doctor':
+            # Retrieve patient details including medical history
+            patient = Patient.query.get(patient_id)
+
+            if patient:
+                response_dict = patient.to_dict()  # Assuming to_dict() method includes medical history
+                response = make_response(response_dict, 200)
+            else:
+                response = make_response({"error": "Patient not found"}, 404)
+
+            return response
+
+        return jsonify({"error": "Unauthorized access. Only doctors can access patient details."}), 403
+
 
     def put(self, patient_id):
         patient = Patient.query.get(patient_id)
@@ -264,13 +275,15 @@ class PatientByID(Resource):
             response = make_response({"error": "Patient not found"}, 404)
         return response
 
+# Appointments Resource
 class Appointments(Resource):
     def get(self):
         response_dict_list = [appointment.to_dict() for appointment in Appointment.query.all()]
         response = make_response(response_dict_list, 200)
         return response
-    @jwt_required()
+   # @jwt_required()
     def post(self):
+       
         current_user_id = get_jwt_identity()
         appointment_date = datetime.strptime(request.form.get('date'), '%Y-%m-%d').date()
         appointment_time = datetime.strptime(request.form.get('time'), '%H:%M').time()
@@ -287,6 +300,7 @@ class Appointments(Resource):
         response = make_response(response_dict, 201)
         return response
 
+# AppointmentByID Resource
 class AppointmentByID(Resource):
     def get(self, appointment_id):
         appointment = Appointment.query.get(appointment_id)
@@ -297,13 +311,18 @@ class AppointmentByID(Resource):
             response = make_response({"error": "Appointment not found"}, 404)
         return response
 
-    def put(self, appointment_id):
+    def patch(self, appointment_id):
         appointment = Appointment.query.get(appointment_id)
         if appointment:
-            appointment.doctor_id = request.form.get('doctor_id', appointment.doctor_id)
-            appointment.patient_id = request.form.get('patient_id', appointment.patient_id)
-            appointment.date = request.form.get('date', appointment.date)
-            appointment.time = request.form.get('time', appointment.time)
+            data = request.get_json()
+            appointment.patient_id = data.get('patient_id', appointment.patient_id)
+            appointment.doctor_id = data.get('doctor_id', appointment.doctor_id)
+            if 'appointment_date' in data:
+                appointment.date = datetime.strptime(data['appointment_date'], '%Y-%m-%d').date()
+            if 'appointment_time' in data:
+                appointment.time = datetime.strptime(data['appointment_time'], '%H:%M').time()
+                
+            db.session.commit()
             db.session.commit()
             response_dict = appointment.to_dict()
             response = make_response(response_dict, 200)
